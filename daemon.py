@@ -33,13 +33,14 @@ def event_happening(ev):
         start = ev['DTSTART'].dt
         end = ev['DTEND'].dt
         length = end - start
+        now = datetime.now(tz=pytz.UTC)
         if ev.has_key('RRULE'):
-                rr = dateutil.rrule.rrulestr(str(ev['RRULE']), dtstart=ev['DTSTART'].dt)
-                for a in rr.between(datetime.now() - length, datetime.now()):
+                rr = dateutil.rrule.rrulestr(str(ev['RRULE']), dtstart=ev['DTSTART'].dt.replace(tzinfo=pytz.UTC))
+                for a in rr.between(now - length, now):
                         return True
                 return False
         else:
-                return datetime.now(pytz.utc) > start and datetime.now(pytz.utc) < end
+                return now > start and now < end
                 
 def update_setpoint():
         cal = fetch_calendar()
@@ -75,6 +76,7 @@ if __name__ == '__main__':
                 s.write('temp\n')
                 temp = float(s.readline().split()[1])
                 log.write("%d\t%f\t%f\n" % (time(), temp, setpoint))
+                logging.info("Temperature: %f" % temp)
 
                 sleep(2*60)
 
