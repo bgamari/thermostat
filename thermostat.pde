@@ -127,6 +127,8 @@ void handleInput() {
     long on = strtol(c, &tmp, 10);
     if (tmp == c || !(on == 0 || on == 1))
       Serial.println("!ERR Invalid boolean");
+    else if (!override)
+      Serial.println("!ERR Override not active");
     else {
       setHeater(on);
       Serial.println("!OK");
