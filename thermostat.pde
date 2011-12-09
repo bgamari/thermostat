@@ -10,7 +10,7 @@ double Rdiv = 10e3; // Divider resistor, Ohms
 double maxTemp = 273 + 40; // Kelvin
 double minTemp = 273 + 10; // Kelvin
 
-boolean echo = true;
+boolean echo = false;
 
 int thermistorPin = A0;
 int heaterPin = PD2;
