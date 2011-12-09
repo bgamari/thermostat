@@ -112,6 +112,7 @@ void handleInput() {
     char *c = cmd, *tmp;
     while (isalpha(*c) || isblank(*c)) c++;
     double hyst = strtod(c, &tmp);
+    
     if (tmp == c)
       Serial.println("!ERR Invalid number");
     else {
@@ -120,11 +121,11 @@ void handleInput() {
       Serial.println(config.hysteresis);
     }
   }
-  else if (strncmd("set heater", cmd, 10) == 0) {
-    char *c = cmd, *tmp;
+  else if (strncmp("set heater", cmd, 10) == 0) {
+    char *c = cmd, *tmp = cmd_tail;
     while (isalpha(*c) || isblank(*c)) c++;
-    int on = strtoi(c, &tmp);
-    if (tmp == c || (v != 0 && v != 1))
+    long on = strtol(c, &tmp, 10);
+    if (tmp == c || !(on == 0 || on == 1))
       Serial.println("!ERR Invalid boolean");
     else {
       setHeater(on);
@@ -143,7 +144,7 @@ void handleInput() {
     Serial.print("!OK ");
     Serial.println(temperature);
   }
-  else if (strncmp("heater", cmd, 6) == 0)
+  else if (strncmp("heater", cmd, 6) == 0) {
     Serial.print("!OK ");
     Serial.println(heaterOn ? "on" : "off");
   }
