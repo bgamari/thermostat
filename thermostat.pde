@@ -125,6 +125,7 @@ void handleInput() {
   else if (strncmp("heater", cmd, 6) == 0)
     Serial.print("!OK ");
     Serial.println(heaterOn ? "on" : "off");
+  }
   else if (strncmp("echo", cmd, 4) == 0) {
     Serial.print("!OK ");
     echo = 1;
