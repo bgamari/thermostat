@@ -10,6 +10,9 @@ double Rdiv = 10e3; // Divider resistor, Ohms
 double maxTemp = 273 + 40; // Kelvin
 double minTemp = 273 + 10; // Kelvin
 
+boolean override = false;
+double maxOverrideTime = 5; // Minutes
+
 boolean echo = false;
 
 int thermistorPin = A0;
@@ -29,6 +32,7 @@ config_t config;
 double temperature=0;
 boolean heaterOn;
 
+long overrideTime;
 long lastFeedback; // Milliseconds
 
 char cmd[256], *cmd_tail=cmd;
@@ -68,6 +72,11 @@ double tempFromCode(int code) {
   return T;
 }
 
+void setHeater(boolean on) {
+  digitalWrite(heaterPin, on);
+  heaterOn = on;
+}
+
 void handleInput() {
   int a = Serial.read();
   if (a != -1) {
@@ -85,7 +94,7 @@ void handleInput() {
   if (*(cmd_tail-1) != '\n')
     return;
    
-  if (strncmp("set tar", cmd, 5) == 0) {
+  if (strncmp("set tar", cmd, 7) == 0) {
     char *c = cmd, *tmp;
     while (isalpha(*c) || isblank(*c)) c++;
     double newT = strtod(c, &tmp);
@@ -99,7 +108,7 @@ void handleInput() {
     } else
       Serial.println("!ERR Out of range");
   }
-  else if (strncmp("set hyst", cmd, 5) == 0) {
+  else if (strncmp("set hyst", cmd, 8) == 0) {
     char *c = cmd, *tmp;
     while (isalpha(*c) || isblank(*c)) c++;
     double hyst = strtod(c, &tmp);
@@ -109,6 +118,17 @@ void handleInput() {
       config.hysteresis = hyst;
       Serial.print("!OK ");
       Serial.println(config.hysteresis);
+    }
+  }
+  else if (strncmd("set heater", cmd, 10) == 0) {
+    char *c = cmd, *tmp;
+    while (isalpha(*c) || isblank(*c)) c++;
+    int on = strtoi(c, &tmp);
+    if (tmp == c || (v != 0 && v != 1))
+      Serial.println("!ERR Invalid boolean");
+    else {
+      setHeater(on);
+      Serial.println("!OK");
     }
   }
   else if (strncmp("hyst", cmd, 4) == 0) {
@@ -131,6 +151,11 @@ void handleInput() {
     Serial.print("!OK ");
     echo = 1;
   }
+  else if (strncmp("override", cmd, 8) == 0) {
+    Serial.println("!OK");
+    override = 1;
+    overrideTime = millis();
+  }
   else if (strncmp("save", cmd, 4) == 0) {
     saveConfig();
     Serial.println("!OK");
@@ -144,21 +169,19 @@ void handleInput() {
   cmd_tail = cmd;
 }
 
-void setHeater(boolean on) {
-  digitalWrite(heaterPin, on);
-  heaterOn = on;
-}
-
 void updateTemperature() {
   int code = analogRead(A0);
   temperature = tempFromCode(code);
 }
 
 void loop() {
+  if (override && millis() - overrideTime > maxOverrideTime*60*1000)
+    override = 0;
+
   updateTemperature();
   handleInput();
   
-  if (millis() - lastFeedback > feedbackPeriod)
+  if (!override && millis() - lastFeedback > feedbackPeriod)
   {
     doFeedback();
     lastFeedback = millis();
