@@ -68,11 +68,6 @@ double tempFromCode(int code) {
   return T;
 }
 
-void reportHeater() {
-  Serial.print("OK ");
-  Serial.println(heaterOn ? "on" : "off");
-}
-
 void handleInput() {
   int a = Serial.read();
   if (a != -1) {
@@ -94,53 +89,55 @@ void handleInput() {
     while (isalpha(*c) || isblank(*c)) c++;
     double newT = strtod(c, &tmp);
     if (tmp == c)
-      Serial.println("ERR: Invalid number");      
+      Serial.println("!ERR: Invalid number");      
     else if (tmp != c && newT > minTemp && newT < maxTemp) {
       config.setpoint = newT;
-      Serial.print("OK ");
+      Serial.print("!OK ");
+      Serial.print("@");
       Serial.println(config.setpoint);
     } else
-      Serial.println("ERR: Out of range");
+      Serial.println("!ERR Out of range");
   }
   else if (strncmp("set hyst", cmd, 5) == 0) {
     char *c = cmd, *tmp;
     while (isalpha(*c) || isblank(*c)) c++;
     double hyst = strtod(c, &tmp);
     if (tmp == c)
-      Serial.println("ERR: Invalid number");
+      Serial.println("!ERR Invalid number");
     else {
       config.hysteresis = hyst;
-      Serial.print("OK ");
+      Serial.print("!OK ");
       Serial.println(config.hysteresis);
     }
   }
   else if (strncmp("hyst", cmd, 4) == 0) {
-    Serial.print("OK ");
+    Serial.print("!OK ");
     Serial.println(config.hysteresis); 
   }
   else if (strncmp("tar", cmd, 3) == 0) {
-    Serial.print("OK ");
+    Serial.print("!OK ");
     Serial.println(config.setpoint);
   }
   else if (strncmp("temp", cmd, 4) == 0) {
-    Serial.print("OK ");
+    Serial.print("!OK ");
     Serial.println(temperature);
   }
   else if (strncmp("heater", cmd, 6) == 0)
-    reportHeater();
+    Serial.print("!OK ");
+    Serial.println(heaterOn ? "on" : "off");
   else if (strncmp("echo", cmd, 4) == 0) {
-    Serial.print("OK ");
+    Serial.print("!OK ");
     echo = 1;
   }
   else if (strncmp("save", cmd, 4) == 0) {
     saveConfig();
-    Serial.println("OK");
+    Serial.println("!OK");
   }
   else if (strncmp("no echo", cmd, 7) == 0) {
-    Serial.print("OK ");
+    Serial.print("!OK ");
     echo = 0;
   } 
-  else Serial.println("ERR Unknown command");
+  else Serial.println("!ERR Unknown command");
     
   cmd_tail = cmd;
 }
