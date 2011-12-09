@@ -29,7 +29,7 @@ config_t config;
 double temperature=0;
 boolean heaterOn;
 
-unsigned long lastFeedback; // Milliseconds
+long lastFeedback; // Milliseconds
 
 char cmd[256], *cmd_tail=cmd;
 
@@ -77,6 +77,7 @@ void handleInput() {
   }
   
   if (cmd_tail == &cmd[255]) {
+    // Ignore commands over 255 characters long
     cmd_tail = cmd;
     return;
   }
@@ -157,8 +158,7 @@ void loop() {
   updateTemperature();
   handleInput();
   
-  if (millis() > lastFeedback + feedbackPeriod
-   || millis() < lastFeedback - 10000) // Handle wrap-around
+  if (millis() - lastFeedback > feedbackPeriod)
   {
     doFeedback();
     lastFeedback = millis();
