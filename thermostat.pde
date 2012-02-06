@@ -1,3 +1,5 @@
+#include <LiquidCrystal.h>
+
 // Configuration:
 unsigned int feedbackPeriod = 1000; // Milliseconds
 
@@ -16,7 +18,14 @@ double maxOverrideTime = 5; // Minutes
 boolean echo = false;
 
 int thermistorPin = A0;
-int heaterPin = PD2;
+int heaterPin = 7;
+int redPin = 11;
+int greenPin = 10;
+int encoderAPin = A2;
+int encoderBPin = A1;
+int backlightPin = 6;
+
+LiquidCrystal lcd(12, 13, 5, 4, 3, 2);
 // End of configuration
 
 #include <EEPROM.h>
@@ -57,13 +66,43 @@ void restoreConfig() {
     config.hysteresis = 5;
 }
 
-void setup() {
-  Serial.begin(9600);
-  pinMode(thermistorPin, INPUT);
-  pinMode(heaterPin, OUTPUT);
-  lastFeedback = millis();
-  restoreConfig();
-}
+class Encoder {
+  int pinA, pinB;
+  int lastA;
+public:
+  int pos;
+  
+ public:
+  Encoder(int pinA, int pinB) : pinA(pinA), pinB(pinB), lastA(0), pos(0) {
+    pinMode(pinA, INPUT);
+    pinMode(pinB, INPUT);
+    digitalWrite(pinA, HIGH);
+    digitalWrite(pinB, HIGH);
+  }
+  
+  virtual void stepped(int dir) {}
+  
+  void update() {
+    int curA = digitalRead(pinA);
+    if (!lastA && curA) {
+      int curB = digitalRead(pinB);
+      int step = curB ? -1 : +1;
+      pos += step;
+      stepped(step);
+    }
+    lastA = curA;
+  }
+};
+
+class EncoderTest : public Encoder {
+public:
+  EncoderTest(int pinA, int pinB) : Encoder(pinA, pinB) {}
+  void stepped(int dir) {
+    Serial.println(pos);
+  }
+};
+
+EncoderTest enc(encoderAPin, encoderBPin);
 
 double tempFromCode(int code) {
   double Vth = Vcc / 1023 * code;
@@ -72,9 +111,36 @@ double tempFromCode(int code) {
   return T;
 }
 
+void setColor(int red, int green) {
+  analogWrite(greenPin, green);
+  analogWrite(redPin, red);
+}
+
+void setBacklight(int brightness) {
+  analogWrite(backlightPin, 255-brightness);
+}
+
 void setHeater(boolean on) {
   digitalWrite(heaterPin, on);
   heaterOn = on;
+  if (on) setColor(255, 0);
+  else setColor(0, 255);
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(thermistorPin, INPUT);
+  pinMode(heaterPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(redPin, OUTPUT);
+  lastFeedback = millis();
+  restoreConfig();
+  setColor(128, 128);
+  
+  pinMode(backlightPin, OUTPUT);
+  setBacklight(255);
+  lcd.begin(16,2);
+  lcd.print("Hello World!");
 }
 
 void handleInput() {
@@ -188,6 +254,42 @@ void loop() {
   {
     doFeedback();
     lastFeedback = millis();
+  }
+
+  enc.update();
+
+  updateLcd();
+}
+
+void updateLcd() {
+  static int state = 0;
+  static long lastUpdate = 0;
+  static long nUpdates = 0;
+  
+  if (millis() - lastUpdate < 1000) return;
+  lastUpdate = millis();
+  nUpdates++;
+  if (nUpdates % 20 == 0)
+    state = (state+1) % 3;
+  
+  lcd.clear();
+  lcd.print("Temp = ");
+  lcd.print(temperature);
+  
+  lcd.setCursor(0,1);
+  switch (state) {
+  case 0:
+    lcd.print("Target = ");
+    lcd.print(config.setpoint);
+    break;
+  case 1:
+    lcd.print("Hyst = ");
+    lcd.print(config.hysteresis);
+    break;
+  case 2:
+    lcd.print("Heater ");
+    lcd.print(heaterOn ? "on" : "off");
+    break;
   }
 }
 
