@@ -20,6 +20,7 @@ double minTemp = 273 + 10; // Kelvin
 boolean override = false;
 double maxOverrideTime = 5; // Minutes
 
+double encoderGain = 0.1; // Kelvin/step
 boolean echo = false;
 
 int thermistorPin = A0;
@@ -51,6 +52,9 @@ long lastFeedback; // Milliseconds
 
 char cmd[256], *cmd_tail=cmd;
 
+
+// Forward declarations
+void updateLcd();
 
 void saveConfig() {
   unsigned char *p = (unsigned char *)&config;
@@ -99,15 +103,17 @@ public:
   }
 };
 
-class EncoderTest : public Encoder {
+class TempEncoder : public Encoder {
 public:
-  EncoderTest(int pinA, int pinB) : Encoder(pinA, pinB) {}
+  TempEncoder(int pinA, int pinB) : Encoder(pinA, pinB) {}
   void stepped(int dir) {
+    config.setpoint += encoderGain * dir;
     Serial.println(pos);
+    updateLcd();
   }
 };
 
-EncoderTest enc(encoderAPin, encoderBPin);
+TempEncoder enc(encoderAPin, encoderBPin);
 
 double tempFromCode(int code) {
   double Vth = Vcc / 1023 * code;
