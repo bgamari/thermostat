@@ -95,7 +95,7 @@ public:
     int curA = digitalRead(pinA);
     if (!lastA && curA) {
       int curB = digitalRead(pinB);
-      int step = curB ? -1 : +1;
+      int step = curB ? +1 : -1;
       pos += step;
       stepped(step);
     }
