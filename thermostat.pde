@@ -50,6 +50,8 @@ boolean heaterOn;
 long overrideTime;
 long lastFeedback; // Milliseconds
 
+int lcdState = 0;
+
 char cmd[256], *cmd_tail=cmd;
 
 
@@ -109,6 +111,7 @@ public:
   void stepped(int dir) {
     config.setpoint += encoderGain * dir;
     Serial.println(pos);
+    lcdState = 0;
     updateLcd();
   }
 };
@@ -291,7 +294,6 @@ void loop() {
 }
 
 void updateLcd() {
-  static int state = 0;
   static long lastUpdate = 0;
   static long nUpdates = 0;
   
@@ -299,14 +301,14 @@ void updateLcd() {
   lastUpdate = millis();
   nUpdates++;
   if (nUpdates % 20 == 0)
-    state = (state+1) % 3;
+    lcdState = (lcdState+1) % 3;
   
   lcd.clear();
   lcd.print("Temp = ");
   lcd.print(tempToDisplay(temperature));
   
   lcd.setCursor(0,1);
-  switch (state) {
+  switch (lcdState) {
   case 0:
     lcd.print("Target = ");
     lcd.print(tempToDisplay(config.setpoint));
