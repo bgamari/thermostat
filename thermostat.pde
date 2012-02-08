@@ -1,5 +1,9 @@
 #include <LiquidCrystal.h>
 
+enum temp_unit_t {
+  KELVIN, CELCIUS, FAHRENHEIT
+};
+
 // Configuration:
 unsigned int feedbackPeriod = 1000; // Milliseconds
 
@@ -9,6 +13,7 @@ double R0 = 10e3; // Ohms
 double Vcc = 5; // Volts
 double Rdiv = 10e3; // Divider resistor, Ohms
 
+double tempUnit = CELCIUS;
 double maxTemp = 273 + 40; // Kelvin
 double minTemp = 273 + 10; // Kelvin
 
@@ -109,6 +114,24 @@ double tempFromCode(int code) {
   double Rth = Vth / (Vcc-Vth) * Rdiv;
   double T = 1. / (1./T0 + 1./beta * log(Rth/R0));
   return T;
+}
+
+double tempToDisplay(double temp) {
+  if (tempUnit == KELVIN)
+    return temp;
+  else if (tempUnit == CELCIUS)
+    return temp - 273;
+  else if (tempUnit == FAHRENHEIT)
+    return 9/5*(temp - 273) + 32;
+}
+
+double tempDeltaToDisplay(double tempDelta) {
+  if (tempUnit == KELVIN)
+    return tempDelta;
+  else if (tempUnit == CELCIUS)
+    return tempDelta;
+  else if (tempUnit == FAHRENHEIT)
+    return 9/5*tempDelta;
 }
 
 void setColor(int red, int green) {
@@ -274,17 +297,17 @@ void updateLcd() {
   
   lcd.clear();
   lcd.print("Temp = ");
-  lcd.print(temperature);
+  lcd.print(tempToDisplay(temperature));
   
   lcd.setCursor(0,1);
   switch (state) {
   case 0:
     lcd.print("Target = ");
-    lcd.print(config.setpoint);
+    lcd.print(tempToDisplay(config.setpoint));
     break;
   case 1:
     lcd.print("Hyst = ");
-    lcd.print(config.hysteresis);
+    lcd.print(tempDeltaToDisplay(config.hysteresis));
     break;
   case 2:
     lcd.print("Heater ");
