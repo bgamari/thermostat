@@ -5,7 +5,8 @@ enum temp_unit_t {
 };
 
 // Configuration:
-unsigned int feedbackPeriod = 1000; // Milliseconds
+unsigned int temp_oversample = 10;  // samples
+unsigned int feedbackPeriod = 1000; // milliseconds
 
 double beta = 3470;
 double T0 = 25 + 273; // Kelvin
@@ -269,13 +270,12 @@ void handleInput() {
 }
 
 void updateTemperature() {
-  int n = 10;
   float accum = 0;
-  for (int i=0; i<10; i++) {
+  for (int i=0; i<temp_oversample; i++) {
     int code = analogRead(A0);
     accum += tempFromCode(code);
   }
-  temperature = accum / n;
+  temperature = accum / temp_oversample;
 }
 
 void loop() {
