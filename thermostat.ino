@@ -271,8 +271,13 @@ void handleInput() {
 }
 
 void updateTemperature() {
-  int code = analogRead(A0);
-  temperature = tempFromCode(code);
+  int n = 10;
+  float accum = 0;
+  for (int i=0; i<10; i++) {
+    int code = analogRead(A0);
+    accum += tempFromCode(code);
+  }
+  temperature = accum / n;
 }
 
 void loop() {
