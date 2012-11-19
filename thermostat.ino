@@ -196,7 +196,7 @@ void handleInput() {
     while (isalpha(*c) || isblank(*c)) c++;
     double newT = strtod(c, &tmp);
     if (tmp == c)
-      Serial.println("!ERR: Invalid number");      
+      Serial.println("!ERR Invalid number");      
     else if (tmp != c && newT > minTemp && newT < maxTemp) {
       config.setpoint = newT;
       Serial.print("!OK ");
