@@ -297,7 +297,7 @@ void updateLcd() {
   static long lastUpdate = 0;
   static long nUpdates = 0;
   
-  if (millis() - lastUpdate < 1000) return;
+  if (millis() - lastUpdate < 1000/30) return;
   lastUpdate = millis();
   nUpdates++;
   if (nUpdates % 20 == 0)
