@@ -284,11 +284,11 @@ void loop() {
   if (override && millis() - overrideTime > maxOverrideTime*60*1000)
     override = 0;
 
-  updateTemperature();
   handleInput();
   
   if (!override && millis() - lastFeedback > feedbackPeriod)
   {
+    updateTemperature();
     doFeedback();
     lastFeedback = millis();
   }
