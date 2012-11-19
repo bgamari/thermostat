@@ -54,6 +54,7 @@ int lcdState = 0;
 
 char cmd[256], *cmd_tail=cmd;
 
+bool lcdNeedsUpdate = false;
 
 // Forward declarations
 void updateLcd();
@@ -110,9 +111,8 @@ public:
   TempEncoder(int pinA, int pinB) : Encoder(pinA, pinB) {}
   void stepped(int dir) {
     config.setpoint += encoderGain * dir;
-    Serial.println(pos);
     lcdState = 0;
-    updateLcd();
+    lcdNeedsUpdate = true;
   }
 };
 
@@ -293,19 +293,22 @@ void loop() {
     lastFeedback = millis();
   }
 
+  static long lastLcdUpdate = 0;
+  if (millis() - lastLcdUpdate > 1000) {
+    lastLcdUpdate = millis();
+    lcdNeedsUpdate = true;
+  }
   enc.update();
-
   updateLcd();
 }
 
 void updateLcd() {
-  static long lastUpdate = 0;
   static long nUpdates = 0;
   
-  if (millis() - lastUpdate < 1000/30) return;
-  lastUpdate = millis();
+  if (!lcdNeedsUpdate) return;
+  lcdNeedsUpdate = false;
   nUpdates++;
-  if (nUpdates % 20 == 0)
+  if (millis() % 2000 == 0)
     lcdState = (lcdState+1) % 3;
   
   lcd.clear();
