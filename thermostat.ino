@@ -103,8 +103,8 @@ public:
   
  public:
   Encoder(int pinA, int pinB) : pinA(pinA), pinB(pinB), lastA(0), pos(0) {
-    pinMode(pinA, INPUT_PULLUP);
-    pinMode(pinB, INPUT_PULLUP);
+    pinMode(pinA, INPUT); digitalWrite(pinA, HIGH);
+    pinMode(pinB, INPUT); digitalWrite(pinB, HIGH);
   }
   
   virtual void stepped(int dir) {}
