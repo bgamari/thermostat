@@ -126,9 +126,7 @@ class TempEncoder : public Encoder {
 public:
   TempEncoder(int pinA, int pinB) : Encoder(pinA, pinB) {}
   void stepped(int dir) {
-    int prevTempOffset = tempOffset;
     tempOffset += encoderGain * dir;
-    config.setpoint += (tempOffset - prevTempOffset);
     lcdState = 0;
     lcdNeedsUpdate = true;
   }
@@ -330,7 +328,7 @@ void updateLcd() {
   lcd.clear();
   lcd.print(tempToDisplay(temperature));
   lcd.print("->");
-  lcd.print(tempToDisplay(config.setpoint - tempOffset));
+  lcd.print(tempToDisplay(config.setpoint));
   lcd.print("  ");
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
@@ -338,9 +336,9 @@ void updateLcd() {
 }
 
 void doFeedback() {
-  if (temperature > config.setpoint + config.hysteresis)
+  if (temperature > config.setpoint + tempOffset + config.hysteresis)
     setHeater(LOW);
-  else if (temperature < config.setpoint - config.hysteresis)
+  else if (temperature < config.setpoint + tempOffset - config.hysteresis)
     setHeater(HIGH);
 }
 
