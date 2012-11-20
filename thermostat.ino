@@ -11,7 +11,6 @@ struct sensor_t {
   double weight;
   double temp;
 };
-
 // Configuration:
 unsigned int temp_oversample = 10;  // samples
 unsigned int feedbackPeriod = 1000; // milliseconds
