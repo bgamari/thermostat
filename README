@@ -1,4 +1,4 @@
-Install Arduino IDE
+--- obtain source code ---
 
 download this source code from https://github.com/bgamari/thermostat
 e.g. 
@@ -12,6 +12,7 @@ Determine the location of your sketchbook by selecting "preferences" on the Ardu
 Create a "libraries" folder in your sketchbook
 Download from http://code.google.com/p/xbee-arduino/downloads/list (version 0.4 recommended)
 unpack zip and copy XBee folder in the libraries folder
+
 
 --- Install on Arduino ----
 Open thermostat.ino in Arduino IDE

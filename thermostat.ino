@@ -326,12 +326,15 @@ void updateLcd() {
   if (millis() % 2000 == 0)
   
   lcd.clear();
+  lcd.setCursor(0,0);
   lcd.print(tempToDisplay(temperature));
-  lcd.print("->");
+  lcd.print(" ->    ");
+  lcd.setCursor(0,1);
   lcd.print(tempToDisplay(config.setpoint));
-  lcd.print("  ");
+  lcd.print(" ");
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
+  lcd.print("  ");
 
 }
 
