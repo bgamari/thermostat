@@ -62,6 +62,7 @@ struct config_t {
 };
 config_t config;
 double temperature=0;
+double tempOffset=0;
 boolean heaterOn;
 
 long overrideTime;
@@ -125,7 +126,9 @@ class TempEncoder : public Encoder {
 public:
   TempEncoder(int pinA, int pinB) : Encoder(pinA, pinB) {}
   void stepped(int dir) {
-    config.setpoint += encoderGain * dir;
+    int prevTempOffset = tempOffset;
+    tempOffset += encoderGain * dir;
+    config.setpoint += (tempOffset - prevTempOffset);
     lcdState = 0;
     lcdNeedsUpdate = true;
   }
@@ -187,7 +190,7 @@ void setup() {
   pinMode(backlightPin, OUTPUT);
   setBacklight(255);
   lcd.begin(16,2);
-  lcd.print("Hello World!");
+  lcd.print("arduheat");
 }
 
 void handleInput() {
@@ -323,27 +326,15 @@ void updateLcd() {
   lcdNeedsUpdate = false;
   nUpdates++;
   if (millis() % 2000 == 0)
-    lcdState = (lcdState+1) % 3;
   
   lcd.clear();
-  lcd.print("Temp = ");
   lcd.print(tempToDisplay(temperature));
-  
-  lcd.setCursor(0,1);
-  switch (lcdState) {
-  case 0:
-    lcd.print("Target = ");
-    lcd.print(tempToDisplay(config.setpoint));
-    break;
-  case 1:
-    lcd.print("Hyst = ");
-    lcd.print(tempDeltaToDisplay(config.hysteresis));
-    break;
-  case 2:
-    lcd.print("Heater ");
-    lcd.print(heaterOn ? "on" : "off");
-    break;
-  }
+  lcd.print("->");
+  lcd.print(tempToDisplay(config.setpoint - tempOffset));
+  lcd.print("  ");
+  if (tempOffset>0) lcd.print("+");  
+  lcd.print(tempOffset);
+
 }
 
 void doFeedback() {
