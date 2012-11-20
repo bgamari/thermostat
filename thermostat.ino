@@ -4,6 +4,14 @@ enum temp_unit_t {
   KELVIN, CELCIUS, FAHRENHEIT
 };
 
+struct sensor_t {
+  unsigned int addr;
+  unsigned int channel;
+  char* label;
+  double weight;
+  double temp;
+};
+
 // Configuration:
 unsigned int temp_oversample = 10;  // samples
 unsigned int feedbackPeriod = 1000; // milliseconds
@@ -33,6 +41,15 @@ int encoderBPin = A1;
 int backlightPin = 6;
 
 LiquidCrystal lcd(12, 13, 5, 4, 3, 2);
+
+sensor_t sensors[] = {
+  { addr    : 1,
+    channel : 1,
+    label   : "Kitchen",
+    weight  : 1,
+  },
+};
+
 // End of configuration
 
 #include <EEPROM.h>
