@@ -5,12 +5,12 @@ enum temp_unit_t {
 };
 
 struct sensor_t {
-  unsigned int addr;
-  unsigned int channel;
-  char* label;
+  char *label;
   double weight;
-  double temp;
+  double offset;
+  double current;
 };
+
 // Configuration:
 unsigned int temp_oversample = 10;  // samples
 unsigned int feedbackPeriod = 1000; // milliseconds
@@ -42,11 +42,21 @@ int backlightPin = 6;
 LiquidCrystal lcd(12, 13, 5, 4, 3, 2);
 
 sensor_t sensors[] = {
-  { addr    : 1,
-    channel : 1,
-    label   : "Kitchen",
+  { 
+    label   : "kitchen",
     weight  : 1,
+    offset  : 0,
+    current : 0,
   },
+  { 
+    label   : "laura-room",
+    weight  : 1,
+    offset  : 0,
+    current : 0,
+  },
+  {
+    label   : 0,
+  }
 };
 
 // End of configuration
@@ -226,7 +236,6 @@ void handleInput() {
     char *c = cmd, *tmp;
     while (isalpha(*c) || isblank(*c)) c++;
     double hyst = strtod(c, &tmp);
-    
     if (tmp == c)
       Serial.println("!ERR Invalid number");
     else {
@@ -248,6 +257,38 @@ void handleInput() {
       Serial.println("!OK");
     }
   }
+  else if (strncmp("set sensor", cmd, 10) == 0) {
+    char *c = cmd, *tmp;
+    while (isalpha(*c) || isblank(*c)) c++;
+    long i = strtol(c, &tmp, 10);
+    double temp = strtod(tmp, NULL);
+    if (tmp == c)
+      Serial.println("!ERR Invalid number");
+    if (minTemp > temp || temp > maxTemp)
+      Serial.println("!ERR Out of range");
+    else {
+      sensors[i].current = temp;
+      Serial.print("!OK ");
+      Serial.print(sensors[i].label);
+      Serial.print("=");
+      Serial.println(temp);
+    }
+  }
+  else if (strncmp("set weight", cmd, 10) == 0) {
+    char *c = cmd, *tmp;
+    while (isalpha(*c) || isblank(*c)) c++;
+    long i = strtol(c, &tmp, 10);
+    double weight = strtod(tmp, NULL);
+    if (tmp == c)
+      Serial.println("!ERR Invalid number");
+    else {
+      sensors[i].weight = weight;
+      Serial.print("!OK ");
+      Serial.print(sensors[i].label);
+      Serial.print("=");
+      Serial.println(weight);
+    }
+  }
   else if (strncmp("hyst", cmd, 4) == 0) {
     Serial.print("!OK ");
     Serial.println(config.hysteresis); 
@@ -263,6 +304,20 @@ void handleInput() {
   else if (strncmp("heater", cmd, 6) == 0) {
     Serial.print("!OK ");
     Serial.println(heaterOn ? "on" : "off");
+  }
+  else if (strncmp("sensors", cmd, 7) == 0) {
+    Serial.print("!OK\n");
+    for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
+      Serial.print(sensor->label); 
+      Serial.print("  offset="); 
+      Serial.print(sensor->offset); 
+      Serial.print("  weight="); 
+      Serial.print(sensor->weight); 
+      Serial.print("  temp="); 
+      Serial.print(sensor->current); 
+      Serial.print("\n");
+    }
+    Serial.print("!OK\n");
   }
   else if (strncmp("echo", cmd, 4) == 0) {
     Serial.print("!OK ");
@@ -317,6 +372,8 @@ void loop() {
   updateLcd();
 }
 
+double globalHappiness = 0;
+
 void updateLcd() {
   static long nUpdates = 0;
   
@@ -324,24 +381,43 @@ void updateLcd() {
   lcdNeedsUpdate = false;
   nUpdates++;
   if (millis() % 2000 == 0)
-  
+
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(tempToDisplay(temperature));
-  lcd.print(" ->    ");
+  for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
+    lcd.print(tempToDisplay(sensor->current));
+    lcd.print(" ");
+  }
+  lcd.print("-> ");
   lcd.setCursor(0,1);
   lcd.print(tempToDisplay(config.setpoint));
   lcd.print(" ");
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
   lcd.print("  ");
-
+  if (globalHappiness < -config.hysteresis) {
+    lcd.print(":{");
+  }  
+  else if (globalHappiness > config.hysteresis) {
+    lcd.print(");");
+  }  
+  else lcd.print(":)");
 }
 
 void doFeedback() {
-  if (temperature > config.setpoint + tempOffset + config.hysteresis)
-    setHeater(LOW);
-  else if (temperature < config.setpoint + tempOffset - config.hysteresis)
+  globalHappiness = 0;
+
+  for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
+    double targetTemp = config.setpoint + tempOffset + sensor->offset;
+    double happiness = sensor->current - targetTemp;
+    globalHappiness += happiness * sensor->weight;
+  } 
+  
+  if (globalHappiness < -config.hysteresis) {
     setHeater(HIGH);
+  }  
+  else if (globalHappiness > config.hysteresis) {
+    setHeater(LOW);
+  }  
 }
 
