@@ -151,13 +151,17 @@ double tempFromCode(int code) {
   return T;
 }
 
-double tempToDisplay(double temp) {
+char* tempToDisplay(double temp) {
+  static char buffer[10];
   if (tempUnit == KELVIN)
-    return temp;
+    dtostrf(temp, 3, 0, buffer);
   else if (tempUnit == CELCIUS)
-    return temp - 273;
+    dtostrf(temp - 273,
+            2, 0, buffer);
   else if (tempUnit == FAHRENHEIT)
-    return 9/5*(temp - 273) + 32;
+    dtostrf(9/5*(temp - 273) + 32,
+            2, 0, buffer);
+  return buffer;
 }
 
 double tempDeltaToDisplay(double tempDelta) {
@@ -384,13 +388,21 @@ void updateLcd() {
 
   lcd.clear();
   lcd.setCursor(0,0);
+
+  lcd.write(tempToDisplay(temperature));
+  lcd.print(" ");
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
-    lcd.print(tempToDisplay(sensor->current));
+    if (sensor->current < minTemp || sensor->current > maxTemp)
+      lcd.print("--");
+    else
+      lcd.write(tempToDisplay(sensor->current));
+
     lcd.print(" ");
   }
   lcd.print("-> ");
+
   lcd.setCursor(0,1);
-  lcd.print(tempToDisplay(config.setpoint));
+  lcd.write(tempToDisplay(config.setpoint));
   lcd.print(" ");
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
@@ -408,6 +420,7 @@ void doFeedback() {
   globalHappiness = 0;
 
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
+    if (sensor->current < minTemp || sensor->current > maxTemp) continue;
     double targetTemp = config.setpoint + tempOffset + sensor->offset;
     double happiness = sensor->current - targetTemp;
     globalHappiness += happiness * sensor->weight;
