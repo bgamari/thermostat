@@ -46,10 +46,16 @@ sensor_t sensors[] = {
     label   : "upstairs",
     weight  : 0.33,
     offset  : 0,
-    current : 0,
+    current : 295,
   },
   { 
     label   : "laura-room",
+    weight  : 0.33,
+    offset  : 0,
+    current : 295,
+  },
+  { 
+    label   : "local",
     weight  : 0.33,
     offset  : 0,
     current : 0,
@@ -58,6 +64,7 @@ sensor_t sensors[] = {
     label   : 0,
   }
 };
+int localSensorIdx = 2;
 
 // End of configuration
 
@@ -319,13 +326,13 @@ void handleInput() {
       Serial.print(sensor->weight); 
       Serial.print("  temp="); 
       Serial.print(sensor->current); 
- 
-      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
-      double happiness = sensor->current - targetTemp;
-      Serial.print("  target="); 
-      Serial.print(targetTemp); 
-      Serial.print("  happiness="); 
-      Serial.print(happiness); 
+// 
+//      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
+//      double happiness = sensor->current - targetTemp;
+//      Serial.print("  target="); 
+//      Serial.print(targetTemp); 
+//      Serial.print("  happiness="); 
+//      Serial.print(happiness); 
       Serial.print("\n");
     }
 //    Serial.print("   heaterOn=");
@@ -366,6 +373,7 @@ void updateTemperature() {
     accum += tempFromCode(code);
   }
   temperature = accum / temp_oversample;
+  sensors[localSensorIdx].current = temperature;
 }
 
 void loop() {
@@ -404,23 +412,23 @@ void updateLcd() {
   lcd.clear();
   lcd.setCursor(0,0);
 
-  lcd.write(tempToDisplay(temperature));
+  //lcd.write(tempToDisplay(temperature));
   // BUG!
   // local sensor is not part of the sensors array
   // it is only displayed, but it does not have any effect on the globalHappiness
 
-  lcd.print(" ");
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
-    if (sensor->current < minTemp || sensor->current > maxTemp)
+   // sensor out of range
+   if (sensor->current < minTemp || sensor->current > maxTemp)
       lcd.print("--");
     else {
       lcd.write(tempToDisplay(sensor->current));
       double targetTemp = config.setpoint + sensor->offset + sensor->offset;
       double happiness = sensor->current - targetTemp;
-      if (globalHappiness < -config.hysteresis) {
+      if (happiness < -config.hysteresis * sensor->weight) {
         lcd.print("^");
       }  
-      else if (globalHappiness > config.hysteresis) {
+      else if (happiness > config.hysteresis * sensor->weight) {
         lcd.print("v");
       }
       else {
@@ -441,33 +449,37 @@ void updateLcd() {
   lcd.print(" ");
   lcd.write(tempToDisplay(globalHappiness));
   if (globalHappiness < -config.hysteresis) {
-    lcd.print(":{");
+    lcd.print("<8");
   }  
   else { 
     if (globalHappiness > config.hysteresis) {
-      lcd.print(");");
+      lcd.print(";(");
     }  
-    else lcd.print(":)");
+    else lcd.print(":D");
   }
 }
 
 void doFeedback() {
   globalHappiness = 0;
+  double totalWeight = 0;
 
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
-    // ignore extreme sensed temperatures, as they are due to delays and offline sensors 
+    // sensor out of range (probably not initialized)
     if (sensor->current < minTemp || sensor->current > maxTemp) continue;
     // sensor specific target and happiness
     double targetTemp = config.setpoint + tempOffset + sensor->offset;
     double happiness = sensor->current - targetTemp;
     globalHappiness += happiness * sensor->weight;
+    totalWeight += sensor->weight;
   } 
   
-  if (globalHappiness < -config.hysteresis) {
-    setHeater(HIGH);
-  }  
-  else if (globalHappiness > config.hysteresis) {
-    setHeater(LOW);
+  if(totalWeight > 0){ // handle situation where all sensors are dead.
+    if (globalHappiness < -config.hysteresis*totalWeight) { // rescale if sensors are missing
+      setHeater(HIGH);
+    }  
+    else if (globalHappiness > config.hysteresis*totalWeight) {
+      setHeater(LOW);
+    }
   }  
 }
 
