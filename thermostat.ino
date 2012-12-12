@@ -43,14 +43,14 @@ LiquidCrystal lcd(12, 13, 5, 4, 3, 2);
 
 sensor_t sensors[] = {
   { 
-    label   : "kitchen",
-    weight  : 1,
+    label   : "upstairs",
+    weight  : 0.33,
     offset  : 0,
     current : 0,
   },
   { 
     label   : "laura-room",
-    weight  : 1,
+    weight  : 0.33,
     offset  : 0,
     current : 0,
   },
@@ -319,8 +319,22 @@ void handleInput() {
       Serial.print(sensor->weight); 
       Serial.print("  temp="); 
       Serial.print(sensor->current); 
+ 
+      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
+      double happiness = sensor->current - targetTemp;
+      Serial.print("  target="); 
+      Serial.print(targetTemp); 
+      Serial.print("  happiness="); 
+      Serial.print(happiness); 
       Serial.print("\n");
     }
+//    Serial.print("   heaterOn=");
+//    Serial.print(heaterOn ? "on" : "off");
+//    Serial.print("   globalHappiness=");
+//    Serial.print(globalHappiness);
+//    Serial.print("   hysteresis=");
+//    Serial.print(config.hysteresis);
+//    Serial.print("\n");
     Serial.print("!OK\n");
   }
   else if (strncmp("echo", cmd, 4) == 0) {
@@ -378,6 +392,7 @@ void loop() {
 
 double globalHappiness = 0;
 
+
 void updateLcd() {
   static long nUpdates = 0;
   
@@ -390,12 +405,29 @@ void updateLcd() {
   lcd.setCursor(0,0);
 
   lcd.write(tempToDisplay(temperature));
+  // BUG!
+  // local sensor is not part of the sensors array
+  // it is only displayed, but it does not have any effect on the globalHappiness
+
   lcd.print(" ");
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
     if (sensor->current < minTemp || sensor->current > maxTemp)
       lcd.print("--");
-    else
+    else {
       lcd.write(tempToDisplay(sensor->current));
+      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
+      double happiness = sensor->current - targetTemp;
+      if (globalHappiness < -config.hysteresis) {
+        lcd.print("^");
+      }  
+      else if (globalHappiness > config.hysteresis) {
+        lcd.print("v");
+      }
+      else {
+        lcd.print("*");
+      }  
+      
+    }
 
     lcd.print(" ");
   }
@@ -406,21 +438,26 @@ void updateLcd() {
   lcd.print(" ");
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
-  lcd.print("  ");
+  lcd.print(" ");
+  lcd.write(tempToDisplay(globalHappiness));
   if (globalHappiness < -config.hysteresis) {
     lcd.print(":{");
   }  
-  else if (globalHappiness > config.hysteresis) {
-    lcd.print(");");
-  }  
-  else lcd.print(":)");
+  else { 
+    if (globalHappiness > config.hysteresis) {
+      lcd.print(");");
+    }  
+    else lcd.print(":)");
+  }
 }
 
 void doFeedback() {
   globalHappiness = 0;
 
   for (sensor_t *sensor=sensors; sensor->label != NULL; sensor++) {
+    // ignore extreme sensed temperatures, as they are due to delays and offline sensors 
     if (sensor->current < minTemp || sensor->current > maxTemp) continue;
+    // sensor specific target and happiness
     double targetTemp = config.setpoint + tempOffset + sensor->offset;
     double happiness = sensor->current - targetTemp;
     globalHappiness += happiness * sensor->weight;
