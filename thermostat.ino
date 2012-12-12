@@ -65,6 +65,9 @@ sensor_t sensors[] = {
   }
 };
 int localSensorIdx = 2;
+double globalHappiness = 0;
+
+
 
 // End of configuration
 
@@ -326,22 +329,22 @@ void handleInput() {
       Serial.print(sensor->weight); 
       Serial.print("  temp="); 
       Serial.print(sensor->current); 
-// 
-//      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
-//      double happiness = sensor->current - targetTemp;
-//      Serial.print("  target="); 
-//      Serial.print(targetTemp); 
-//      Serial.print("  happiness="); 
-//      Serial.print(happiness); 
+ 
+      double targetTemp = config.setpoint + sensor->offset + sensor->offset;
+      double happiness = sensor->current - targetTemp;
+      Serial.print("  target="); 
+      Serial.print(targetTemp); 
+      Serial.print("  happiness="); 
+      Serial.print(happiness); 
       Serial.print("\n");
     }
-//    Serial.print("   heaterOn=");
-//    Serial.print(heaterOn ? "on" : "off");
-//    Serial.print("   globalHappiness=");
-//    Serial.print(globalHappiness);
-//    Serial.print("   hysteresis=");
-//    Serial.print(config.hysteresis);
-//    Serial.print("\n");
+    Serial.print("   heaterOn=");
+    Serial.print(heaterOn ? "on" : "off");
+    Serial.print("   globalHappiness=");
+    Serial.print(globalHappiness);
+    Serial.print("   hysteresis=");
+    Serial.print(config.hysteresis);
+    Serial.print("\n");
     Serial.print("!OK\n");
   }
   else if (strncmp("echo", cmd, 4) == 0) {
@@ -397,8 +400,6 @@ void loop() {
   enc.update();
   updateLcd();
 }
-
-double globalHappiness = 0;
 
 
 void updateLcd() {
