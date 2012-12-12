@@ -426,13 +426,13 @@ void updateLcd() {
       double targetTemp = config.setpoint + sensor->offset + sensor->offset;
       double happiness = sensor->current - targetTemp;
       if (happiness < -config.hysteresis * sensor->weight) {
-        lcd.print("^");
+        lcd.print("`");
       }  
       else if (happiness > config.hysteresis * sensor->weight) {
-        lcd.print("v");
+        lcd.print(",");
       }
       else {
-        lcd.print("*");
+        lcd.print("~");
       }  
       
     }
@@ -447,7 +447,9 @@ void updateLcd() {
   if (tempOffset>0) lcd.print("+");  
   lcd.print(tempOffset);
   lcd.print(" ");
-  lcd.write(tempToDisplay(globalHappiness));
+
+  static char buffer[10];
+  lcd.write(dtostrf(globalHappiness, 2, 1, buffer));
   if (globalHappiness < -config.hysteresis) {
     lcd.print("<8");
   }  
